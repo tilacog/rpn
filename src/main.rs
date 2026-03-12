@@ -3,9 +3,9 @@ use std::io::{self, BufRead, IsTerminal};
 use pol::engine::Calculator;
 use pol::error::CalcError;
 use pol::parser::{self, Token};
+use rustyline::DefaultEditor;
 use rustyline::config::Configurer;
 use rustyline::error::ReadlineError;
-use rustyline::DefaultEditor;
 
 #[derive(Clone, Copy)]
 enum DisplayMode {
@@ -208,10 +208,7 @@ mod tests {
 
     #[test]
     fn vertical_multi_element() {
-        assert_eq!(
-            format_stack_vertical(&[1.0, 2.0, 3.0]),
-            "0. 3\n1. 2\n2. 1"
-        );
+        assert_eq!(format_stack_vertical(&[1.0, 2.0, 3.0]), "0. 3\n1. 2\n2. 1");
     }
 
     #[test]
