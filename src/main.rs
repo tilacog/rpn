@@ -1,8 +1,8 @@
 use std::io::{self, BufRead, IsTerminal};
 
-use rpn::engine::Calculator;
-use rpn::error::CalcError;
-use rpn::parser::{self, Token};
+use pol::engine::Calculator;
+use pol::error::CalcError;
+use pol::parser::{self, Token};
 use rustyline::config::Configurer;
 use rustyline::error::ReadlineError;
 use rustyline::DefaultEditor;
@@ -85,7 +85,7 @@ fn process_line(
 fn print_help() {
     print!(
         "\
-Usage: rpn [OPTIONS]
+Usage: pol [OPTIONS]
 
 An interactive RPN (Reverse Polish Notation) calculator.
 
@@ -130,7 +130,7 @@ fn main() {
 
     if is_tty {
         // REPL mode
-        let history_path = home::home_dir().map(|h| h.join(".rpn_history"));
+        let history_path = home::home_dir().map(|h| h.join(".pol_history"));
         let mut rl = DefaultEditor::new().expect("failed to initialize editor");
         let _ = rl.set_max_history_size(1000);
         if let Some(path) = &history_path {

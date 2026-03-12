@@ -1,4 +1,4 @@
-# rpn
+# pol
 
 An RPN calculator in Rust with a REPL and pipe mode. The stack persists across lines.
 
@@ -28,10 +28,10 @@ In a terminal, you get a prompt and the stack after each line:
 Piped input runs silently and prints the final stack:
 
 ```bash
-echo "3 4 +" | rpn
+echo "3 4 +" | pol
 # [7]
 
-printf "15 7 1 1 + - /\n3 * 2 1 1 + + -\n" | rpn
+printf "15 7 1 1 + - /\n3 * 2 1 1 + + -\n" | pol
 # [5]
 ```
 

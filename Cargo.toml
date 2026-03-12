@@ -1,9 +1,11 @@
 [package]
-name = "rpn"
+name = "pol"
 version = "0.1.0"
 edition = "2024"
 authors = ["Tiago Guimarães <tilacog@gmail.com>"]
 description = "An interactive Reverse Polish Notation (RPN) calculator"
+license = "GPL-3.0"
+repository = "https://github.com/tilacog/pol"
 
 [dependencies]
 home = "0.5.12"

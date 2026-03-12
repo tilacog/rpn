@@ -1,7 +1,7 @@
 use std::process::Command;
 
 fn run_with_args(args: &[&str]) -> (String, String, bool) {
-    let output = Command::new(env!("CARGO_BIN_EXE_rpn"))
+    let output = Command::new(env!("CARGO_BIN_EXE_pol"))
         .args(args)
         .stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::piped())
@@ -15,7 +15,7 @@ fn run_with_args(args: &[&str]) -> (String, String, bool) {
 }
 
 fn run_with_input(input: &str) -> (String, String, bool) {
-    let output = Command::new(env!("CARGO_BIN_EXE_rpn"))
+    let output = Command::new(env!("CARGO_BIN_EXE_pol"))
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
@@ -68,7 +68,7 @@ fn quit_command() {
 }
 
 #[test]
-fn complex_rpn_expression() {
+fn complex_expression() {
     // 15 7 1 1 + - / 3 * 2 1 1 + + -
     // Step by step:
     //   push 15, 7, 1, 1 → [15, 7, 1, 1]
@@ -238,14 +238,14 @@ fn mode_does_not_affect_undo() {
 fn help_long_flag() {
     let (stdout, _, success) = run_with_args(&["--help"]);
     assert!(success);
-    assert!(stdout.contains("Usage: rpn"));
+    assert!(stdout.contains("Usage: pol"));
 }
 
 #[test]
 fn help_short_flag() {
     let (stdout, _, success) = run_with_args(&["-h"]);
     assert!(success);
-    assert!(stdout.contains("Usage: rpn"));
+    assert!(stdout.contains("Usage: pol"));
 }
 
 #[test]
