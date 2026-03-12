@@ -41,6 +41,9 @@ printf "15 7 1 1 + - /\n3 * 2 1 1 + + -\n" | pol
 |-------|-------------|
 | Numbers | Integers and floats (e.g. `42`, `3.14`, `-5`) |
 | `+` `-` `*` `/` | Arithmetic operators (binary, pop two, push result) |
+| `^` | Exponentiation (`a ^ b` = a raised to the power b) |
+| `%` | Modulo (remainder after division) |
+| `sqrt` | Square root of the top element |
 | `clear` | Clear the stack |
 | `pop` | Remove the top element |
 | `undo` | Revert the last operation |

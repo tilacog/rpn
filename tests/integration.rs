@@ -263,3 +263,45 @@ fn help_output_contains_expected_content() {
     assert!(stdout.contains("horizontal"));
     assert!(stdout.contains("vertical"));
 }
+
+#[test]
+fn pow_basic() {
+    let (stdout, _, success) = run_with_input("2 10 ^\n");
+    assert!(success);
+    assert_eq!(stdout.trim(), "[1024]");
+}
+
+#[test]
+fn pow_zero_exponent() {
+    let (stdout, _, success) = run_with_input("5 0 ^\n");
+    assert!(success);
+    assert_eq!(stdout.trim(), "[1]");
+}
+
+#[test]
+fn mod_basic() {
+    let (stdout, _, success) = run_with_input("10 3 %\n");
+    assert!(success);
+    assert_eq!(stdout.trim(), "[1]");
+}
+
+#[test]
+fn mod_by_zero_error() {
+    let (_, stderr, success) = run_with_input("10 0 %\n");
+    assert!(success);
+    assert!(stderr.contains("division by zero"));
+}
+
+#[test]
+fn sqrt_basic() {
+    let (stdout, _, success) = run_with_input("9 sqrt\n");
+    assert!(success);
+    assert_eq!(stdout.trim(), "[3]");
+}
+
+#[test]
+fn sqrt_negative_error() {
+    let (_, stderr, success) = run_with_input("-1 sqrt\n");
+    assert!(success);
+    assert!(stderr.contains("negative"));
+}

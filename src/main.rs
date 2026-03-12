@@ -97,6 +97,8 @@ Operators:
     -    Subtraction
     *    Multiplication
     /    Division
+    ^    Exponentiation (a ^ b = a raised to the power b)
+    %    Modulo (remainder after division)
 
 Commands:
     clear       Clear the stack
@@ -105,6 +107,7 @@ Commands:
     undo        Undo the last operation
     r, r<N>     Rotate stack left by N (default 1)
     r-, r-<N>   Rotate stack right by N (default 1)
+    sqrt        Square root of the top element
 
 Display modes:
     mode                Show current display mode

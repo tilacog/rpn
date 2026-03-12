@@ -6,6 +6,8 @@ pub enum Op {
     Sub,
     Mul,
     Div,
+    Pow,
+    Mod,
 }
 
 #[derive(Debug, PartialEq)]
@@ -15,6 +17,7 @@ pub enum Cmd {
     Quit,
     Undo,
     Rotate(i32),
+    Sqrt,
 }
 
 #[derive(Debug, PartialEq)]
@@ -34,6 +37,9 @@ pub fn parse_line(input: &str) -> Vec<Result<Token, CalcError>> {
             "-" => Ok(Token::Operator(Op::Sub)),
             "*" => Ok(Token::Operator(Op::Mul)),
             "/" => Ok(Token::Operator(Op::Div)),
+            "^" => Ok(Token::Operator(Op::Pow)),
+            "%" => Ok(Token::Operator(Op::Mod)),
+            "sqrt" => Ok(Token::Command(Cmd::Sqrt)),
             "clear" => Ok(Token::Command(Cmd::Clear)),
             "pop" => Ok(Token::Command(Cmd::Pop)),
             "quit" => Ok(Token::Command(Cmd::Quit)),
@@ -245,5 +251,20 @@ mod tests {
             parse_ok("mode foo"),
             vec![Token::Mode(Some("foo".to_string()))]
         );
+    }
+
+    #[test]
+    fn parse_pow() {
+        assert_eq!(parse_ok("^"), vec![Token::Operator(Op::Pow)]);
+    }
+
+    #[test]
+    fn parse_mod() {
+        assert_eq!(parse_ok("%"), vec![Token::Operator(Op::Mod)]);
+    }
+
+    #[test]
+    fn parse_sqrt() {
+        assert_eq!(parse_ok("sqrt"), vec![Token::Command(Cmd::Sqrt)]);
     }
 }

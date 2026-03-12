@@ -8,6 +8,7 @@ pub enum CalcError {
         available: usize,
     },
     DivisionByZero,
+    NegativeSqrt,
     NothingToUndo,
     UnrecognizedToken(String),
     InvalidDisplayMode(String),
@@ -28,6 +29,9 @@ impl fmt::Display for CalcError {
             }
             CalcError::DivisionByZero => {
                 write!(f, "Error: division by zero")
+            }
+            CalcError::NegativeSqrt => {
+                write!(f, "Error: square root of negative number")
             }
             CalcError::NothingToUndo => {
                 write!(f, "Error: nothing to undo")

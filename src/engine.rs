@@ -68,12 +68,32 @@ impl Calculator {
         }
     }
 
+    pub fn sqrt(&mut self) -> Result<(), CalcError> {
+        if self.stack.is_empty() {
+            return Err(CalcError::StackUnderflow {
+                operator: "sqrt".to_string(),
+                required: 1,
+                available: 0,
+            });
+        }
+        let a = *self.stack.last().unwrap();
+        if a < 0.0 {
+            return Err(CalcError::NegativeSqrt);
+        }
+        self.save_snapshot();
+        self.stack.pop();
+        self.stack.push(a.sqrt());
+        Ok(())
+    }
+
     pub fn apply_operator(&mut self, op: &Op) -> Result<(), CalcError> {
         let op_str = match op {
             Op::Add => "+",
             Op::Sub => "-",
             Op::Mul => "*",
             Op::Div => "/",
+            Op::Pow => "^",
+            Op::Mod => "%",
         };
 
         if self.stack.len() < 2 {
@@ -87,7 +107,7 @@ impl Calculator {
         let b = self.stack[self.stack.len() - 1];
         let a = self.stack[self.stack.len() - 2];
 
-        if matches!(op, Op::Div) && b == 0.0 {
+        if matches!(op, Op::Div | Op::Mod) && b == 0.0 {
             return Err(CalcError::DivisionByZero);
         }
 
@@ -101,6 +121,8 @@ impl Calculator {
             Op::Sub => a - b,
             Op::Mul => a * b,
             Op::Div => a / b,
+            Op::Pow => a.powf(b),
+            Op::Mod => a % b,
         };
 
         self.stack.push(result);
@@ -118,6 +140,7 @@ impl Calculator {
             Token::Command(Cmd::Quit) => return Ok(true),
             Token::Command(Cmd::Undo) => self.undo()?,
             Token::Command(Cmd::Rotate(n)) => self.rotate(n),
+            Token::Command(Cmd::Sqrt) => self.sqrt()?,
             Token::Mode(_) => {}
         }
         Ok(false)
@@ -506,5 +529,173 @@ mod tests {
         calc.process_line("1 2 3 r 4 +").unwrap();
         // [1,2,3] → rotate → [2,3,1] → push 4 → [2,3,1,4] → add → [2,3,5]
         assert_eq!(calc.stack(), &[2.0, 3.0, 5.0]);
+    }
+
+    // pow tests
+    #[test]
+    fn pow_basic() {
+        let mut calc = Calculator::new();
+        calc.push(2.0);
+        calc.push(10.0);
+        calc.apply_operator(&Op::Pow).unwrap();
+        assert_eq!(calc.stack(), &[1024.0]);
+    }
+
+    #[test]
+    fn pow_zero_exponent() {
+        let mut calc = Calculator::new();
+        calc.push(5.0);
+        calc.push(0.0);
+        calc.apply_operator(&Op::Pow).unwrap();
+        assert_eq!(calc.stack(), &[1.0]);
+    }
+
+    #[test]
+    fn pow_stack_underflow() {
+        let mut calc = Calculator::new();
+        calc.push(5.0);
+        let err = calc.apply_operator(&Op::Pow).unwrap_err();
+        assert_eq!(
+            err,
+            CalcError::StackUnderflow {
+                operator: "^".to_string(),
+                required: 2,
+                available: 1,
+            }
+        );
+    }
+
+    #[test]
+    fn pow_undo() {
+        let mut calc = Calculator::new();
+        calc.push(2.0);
+        calc.push(3.0);
+        calc.apply_operator(&Op::Pow).unwrap();
+        assert_eq!(calc.stack(), &[8.0]);
+        calc.undo().unwrap();
+        assert_eq!(calc.stack(), &[2.0, 3.0]);
+    }
+
+    // modulo tests
+    #[test]
+    fn mod_basic() {
+        let mut calc = Calculator::new();
+        calc.push(10.0);
+        calc.push(3.0);
+        calc.apply_operator(&Op::Mod).unwrap();
+        assert_eq!(calc.stack(), &[1.0]);
+    }
+
+    #[test]
+    fn mod_no_remainder() {
+        let mut calc = Calculator::new();
+        calc.push(9.0);
+        calc.push(3.0);
+        calc.apply_operator(&Op::Mod).unwrap();
+        assert_eq!(calc.stack(), &[0.0]);
+    }
+
+    #[test]
+    fn mod_floating_point() {
+        let mut calc = Calculator::new();
+        calc.push(5.5);
+        calc.push(2.0);
+        calc.apply_operator(&Op::Mod).unwrap();
+        assert_eq!(calc.stack(), &[1.5]);
+    }
+
+    #[test]
+    fn mod_by_zero() {
+        let mut calc = Calculator::new();
+        calc.push(10.0);
+        calc.push(0.0);
+        let err = calc.apply_operator(&Op::Mod).unwrap_err();
+        assert_eq!(err, CalcError::DivisionByZero);
+        assert_eq!(calc.stack(), &[10.0, 0.0]);
+    }
+
+    #[test]
+    fn mod_stack_underflow() {
+        let mut calc = Calculator::new();
+        calc.push(5.0);
+        let err = calc.apply_operator(&Op::Mod).unwrap_err();
+        assert_eq!(
+            err,
+            CalcError::StackUnderflow {
+                operator: "%".to_string(),
+                required: 2,
+                available: 1,
+            }
+        );
+    }
+
+    #[test]
+    fn mod_undo() {
+        let mut calc = Calculator::new();
+        calc.push(10.0);
+        calc.push(3.0);
+        calc.apply_operator(&Op::Mod).unwrap();
+        assert_eq!(calc.stack(), &[1.0]);
+        calc.undo().unwrap();
+        assert_eq!(calc.stack(), &[10.0, 3.0]);
+    }
+
+    // sqrt tests
+    #[test]
+    fn sqrt_perfect_square() {
+        let mut calc = Calculator::new();
+        calc.push(9.0);
+        calc.sqrt().unwrap();
+        assert_eq!(calc.stack(), &[3.0]);
+    }
+
+    #[test]
+    fn sqrt_non_perfect_square() {
+        let mut calc = Calculator::new();
+        calc.push(2.0);
+        calc.sqrt().unwrap();
+        let result = calc.stack()[0];
+        assert!((result - std::f64::consts::SQRT_2).abs() < 1e-10);
+    }
+
+    #[test]
+    fn sqrt_zero() {
+        let mut calc = Calculator::new();
+        calc.push(0.0);
+        calc.sqrt().unwrap();
+        assert_eq!(calc.stack(), &[0.0]);
+    }
+
+    #[test]
+    fn sqrt_negative_input() {
+        let mut calc = Calculator::new();
+        calc.push(-1.0);
+        let err = calc.sqrt().unwrap_err();
+        assert_eq!(err, CalcError::NegativeSqrt);
+        assert_eq!(calc.stack(), &[-1.0]);
+    }
+
+    #[test]
+    fn sqrt_empty_stack() {
+        let mut calc = Calculator::new();
+        let err = calc.sqrt().unwrap_err();
+        assert_eq!(
+            err,
+            CalcError::StackUnderflow {
+                operator: "sqrt".to_string(),
+                required: 1,
+                available: 0,
+            }
+        );
+    }
+
+    #[test]
+    fn sqrt_undo() {
+        let mut calc = Calculator::new();
+        calc.push(16.0);
+        calc.sqrt().unwrap();
+        assert_eq!(calc.stack(), &[4.0]);
+        calc.undo().unwrap();
+        assert_eq!(calc.stack(), &[16.0]);
     }
 }
