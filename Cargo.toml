@@ -6,3 +6,5 @@ authors = ["Tiago Guimarães <tilacog@gmail.com>"]
 description = "An interactive Reverse Polish Notation (RPN) calculator"
 
 [dependencies]
+home = "0.5.12"
+rustyline = "17.0.2"

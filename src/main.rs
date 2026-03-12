@@ -1,8 +1,11 @@
-use std::io::{self, BufRead, IsTerminal, Write};
+use std::io::{self, BufRead, IsTerminal};
 
 use rpn::engine::Calculator;
 use rpn::error::CalcError;
 use rpn::parser::{self, Token};
+use rustyline::config::Configurer;
+use rustyline::error::ReadlineError;
+use rustyline::DefaultEditor;
 
 #[derive(Clone, Copy)]
 enum DisplayMode {
@@ -127,26 +130,34 @@ fn main() {
 
     if is_tty {
         // REPL mode
-        let mut stdout = io::stdout();
-        loop {
-            print!("> ");
-            stdout.flush().unwrap();
+        let history_path = home::home_dir().map(|h| h.join(".rpn_history"));
+        let mut rl = DefaultEditor::new().expect("failed to initialize editor");
+        let _ = rl.set_max_history_size(1000);
+        if let Some(path) = &history_path {
+            let _ = rl.load_history(path);
+        }
 
-            let mut line = String::new();
-            match stdin.lock().read_line(&mut line) {
-                Ok(0) => break, // EOF
-                Ok(_) => {}
+        loop {
+            match rl.readline("> ") {
+                Ok(line) => {
+                    let _ = rl.add_history_entry(&line);
+                    match process_line(&line, &mut calc, &mut display_mode) {
+                        Ok(true) => break, // quit
+                        Ok(false) => println!("{}", format_stack(calc.stack(), display_mode)),
+                        Err(e) => eprintln!("{e}"),
+                    }
+                }
+                Err(ReadlineError::Interrupted) => continue,
+                Err(ReadlineError::Eof) => break,
                 Err(e) => {
                     eprintln!("Error: {e}");
                     break;
                 }
             }
+        }
 
-            match process_line(&line, &mut calc, &mut display_mode) {
-                Ok(true) => break, // quit
-                Ok(false) => println!("{}", format_stack(calc.stack(), display_mode)),
-                Err(e) => eprintln!("{e}"),
-            }
+        if let Some(path) = &history_path {
+            let _ = rl.save_history(path);
         }
     } else {
         // Pipe mode
