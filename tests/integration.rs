@@ -1,5 +1,19 @@
 use std::process::Command;
 
+fn run_with_args(args: &[&str]) -> (String, String, bool) {
+    let output = Command::new(env!("CARGO_BIN_EXE_rpn"))
+        .args(args)
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .output()
+        .expect("failed to run binary");
+
+    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+    (stdout, stderr, output.status.success())
+}
+
 fn run_with_input(input: &str) -> (String, String, bool) {
     let output = Command::new(env!("CARGO_BIN_EXE_rpn"))
         .stdin(std::process::Stdio::piped())
@@ -216,4 +230,36 @@ fn mode_does_not_affect_undo() {
     assert!(success);
     // After undo, stack is [1, 2], vertical mode is still active
     assert_eq!(stdout.trim(), "0. 2\n1. 1");
+}
+
+// Help flag tests
+
+#[test]
+fn help_long_flag() {
+    let (stdout, _, success) = run_with_args(&["--help"]);
+    assert!(success);
+    assert!(stdout.contains("Usage: rpn"));
+}
+
+#[test]
+fn help_short_flag() {
+    let (stdout, _, success) = run_with_args(&["-h"]);
+    assert!(success);
+    assert!(stdout.contains("Usage: rpn"));
+}
+
+#[test]
+fn help_output_contains_expected_content() {
+    let (stdout, _, _) = run_with_args(&["--help"]);
+    assert!(stdout.contains("RPN"));
+    assert!(stdout.contains("+"));
+    assert!(stdout.contains("-"));
+    assert!(stdout.contains("*"));
+    assert!(stdout.contains("/"));
+    assert!(stdout.contains("clear"));
+    assert!(stdout.contains("pop"));
+    assert!(stdout.contains("quit"));
+    assert!(stdout.contains("undo"));
+    assert!(stdout.contains("horizontal"));
+    assert!(stdout.contains("vertical"));
 }

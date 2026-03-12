@@ -79,7 +79,47 @@ fn process_line(
     Ok(false)
 }
 
+fn print_help() {
+    print!(
+        "\
+Usage: rpn [OPTIONS]
+
+An interactive RPN (Reverse Polish Notation) calculator.
+
+Reads expressions in postfix notation. Runs as an interactive REPL when
+started in a terminal, or processes piped input in batch mode.
+
+Operators:
+    +    Addition
+    -    Subtraction
+    *    Multiplication
+    /    Division
+
+Commands:
+    clear       Clear the stack
+    pop         Remove the top element
+    quit        Exit the calculator
+    undo        Undo the last operation
+    r, r<N>     Rotate stack left by N (default 1)
+    r-, r-<N>   Rotate stack right by N (default 1)
+
+Display modes:
+    mode                Show current display mode
+    mode horizontal     Stack on one line (default): [3 2 1]
+    mode vertical       Stack with indices:
+                            0. 3
+                            1. 2
+                            2. 1
+"
+    );
+}
+
 fn main() {
+    if std::env::args().any(|arg| arg == "--help" || arg == "-h") {
+        print_help();
+        return;
+    }
+
     let stdin = io::stdin();
     let is_tty = stdin.is_terminal();
     let mut calc = Calculator::new();
