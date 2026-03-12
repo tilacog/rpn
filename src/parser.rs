@@ -11,6 +11,7 @@ pub enum Op {
 #[derive(Debug, PartialEq)]
 pub enum Cmd {
     Clear,
+    Pop,
     Quit,
     Undo,
     Rotate(i32),
@@ -21,19 +22,23 @@ pub enum Token {
     Number(f64),
     Operator(Op),
     Command(Cmd),
+    Mode(Option<String>),
 }
 
 pub fn parse_line(input: &str) -> Vec<Result<Token, CalcError>> {
-    input
-        .split_whitespace()
-        .map(|tok| match tok {
+    let mut tokens = Vec::new();
+    let mut words = input.split_whitespace();
+    while let Some(tok) = words.next() {
+        let result = match tok {
             "+" => Ok(Token::Operator(Op::Add)),
             "-" => Ok(Token::Operator(Op::Sub)),
             "*" => Ok(Token::Operator(Op::Mul)),
             "/" => Ok(Token::Operator(Op::Div)),
             "clear" => Ok(Token::Command(Cmd::Clear)),
+            "pop" => Ok(Token::Command(Cmd::Pop)),
             "quit" => Ok(Token::Command(Cmd::Quit)),
             "undo" => Ok(Token::Command(Cmd::Undo)),
+            "mode" => Ok(Token::Mode(words.next().map(|s| s.to_string()))),
             other if other.starts_with('r') => {
                 let rest = &other[1..];
                 let n = match rest {
@@ -50,8 +55,10 @@ pub fn parse_line(input: &str) -> Vec<Result<Token, CalcError>> {
                 .parse::<f64>()
                 .map(Token::Number)
                 .map_err(|_| CalcError::UnrecognizedToken(other.to_string())),
-        })
-        .collect()
+        };
+        tokens.push(result);
+    }
+    tokens
 }
 
 #[cfg(test)]
@@ -136,6 +143,11 @@ mod tests {
     }
 
     #[test]
+    fn parse_pop() {
+        assert_eq!(parse_ok("pop"), vec![Token::Command(Cmd::Pop)]);
+    }
+
+    #[test]
     fn parse_undo() {
         assert_eq!(parse_ok("undo"), vec![Token::Command(Cmd::Undo)]);
     }
@@ -203,6 +215,35 @@ mod tests {
         assert_eq!(
             result,
             vec![Err(CalcError::UnrecognizedToken("r1x".to_string()))]
+        );
+    }
+
+    #[test]
+    fn parse_mode_bare() {
+        assert_eq!(parse_ok("mode"), vec![Token::Mode(None)]);
+    }
+
+    #[test]
+    fn parse_mode_horizontal() {
+        assert_eq!(
+            parse_ok("mode horizontal"),
+            vec![Token::Mode(Some("horizontal".to_string()))]
+        );
+    }
+
+    #[test]
+    fn parse_mode_vertical() {
+        assert_eq!(
+            parse_ok("mode vertical"),
+            vec![Token::Mode(Some("vertical".to_string()))]
+        );
+    }
+
+    #[test]
+    fn parse_mode_invalid() {
+        assert_eq!(
+            parse_ok("mode foo"),
+            vec![Token::Mode(Some("foo".to_string()))]
         );
     }
 }

@@ -10,6 +10,7 @@ pub enum CalcError {
     DivisionByZero,
     NothingToUndo,
     UnrecognizedToken(String),
+    InvalidDisplayMode(String),
 }
 
 impl fmt::Display for CalcError {
@@ -33,6 +34,12 @@ impl fmt::Display for CalcError {
             }
             CalcError::UnrecognizedToken(token) => {
                 write!(f, "Error: unrecognized token '{token}'")
+            }
+            CalcError::InvalidDisplayMode(mode) => {
+                write!(
+                    f,
+                    "Error: invalid display mode '{mode}' (valid modes: horizontal, vertical)"
+                )
             }
         }
     }

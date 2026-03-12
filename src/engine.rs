@@ -27,6 +27,19 @@ impl Calculator {
         &self.stack
     }
 
+    pub fn pop(&mut self) -> Result<(), CalcError> {
+        if self.stack.is_empty() {
+            return Err(CalcError::StackUnderflow {
+                operator: "pop".to_string(),
+                required: 1,
+                available: 0,
+            });
+        }
+        self.save_snapshot();
+        self.stack.pop();
+        Ok(())
+    }
+
     pub fn clear(&mut self) {
         self.save_snapshot();
         self.stack.clear();
@@ -94,18 +107,29 @@ impl Calculator {
         Ok(())
     }
 
+    /// Process a single token. Returns `Ok(true)` if quit was requested.
+    /// Mode tokens are ignored by the engine (handled by the caller).
+    pub fn process_token(&mut self, token: Token) -> Result<bool, CalcError> {
+        match token {
+            Token::Number(n) => self.push(n),
+            Token::Operator(op) => self.apply_operator(&op)?,
+            Token::Command(Cmd::Clear) => self.clear(),
+            Token::Command(Cmd::Pop) => self.pop()?,
+            Token::Command(Cmd::Quit) => return Ok(true),
+            Token::Command(Cmd::Undo) => self.undo()?,
+            Token::Command(Cmd::Rotate(n)) => self.rotate(n),
+            Token::Mode(_) => {}
+        }
+        Ok(false)
+    }
+
     /// Process a line of input. Returns `Ok(true)` if quit was requested.
     pub fn process_line(&mut self, line: &str) -> Result<bool, CalcError> {
         let tokens = parser::parse_line(line);
         for token_result in tokens {
             let token = token_result?;
-            match token {
-                Token::Number(n) => self.push(n),
-                Token::Operator(op) => self.apply_operator(&op)?,
-                Token::Command(Cmd::Clear) => self.clear(),
-                Token::Command(Cmd::Quit) => return Ok(true),
-                Token::Command(Cmd::Undo) => self.undo()?,
-                Token::Command(Cmd::Rotate(n)) => self.rotate(n),
+            if self.process_token(token)? {
+                return Ok(true);
             }
         }
         Ok(false)
@@ -343,6 +367,46 @@ mod tests {
         calc.undo().unwrap(); // undo push 3 → stack [], history: []
         let err = calc.undo().unwrap_err();
         assert_eq!(err, CalcError::NothingToUndo);
+    }
+
+    #[test]
+    fn pop_from_stack_with_elements() {
+        let mut calc = Calculator::new();
+        calc.process_line("1 2 3").unwrap();
+        calc.pop().unwrap();
+        assert_eq!(calc.stack(), &[1.0, 2.0]);
+    }
+
+    #[test]
+    fn pop_from_single_element_stack() {
+        let mut calc = Calculator::new();
+        calc.push(5.0);
+        calc.pop().unwrap();
+        assert!(calc.stack().is_empty());
+    }
+
+    #[test]
+    fn pop_from_empty_stack() {
+        let mut calc = Calculator::new();
+        let err = calc.pop().unwrap_err();
+        assert_eq!(
+            err,
+            CalcError::StackUnderflow {
+                operator: "pop".to_string(),
+                required: 1,
+                available: 0,
+            }
+        );
+    }
+
+    #[test]
+    fn undo_reverts_pop() {
+        let mut calc = Calculator::new();
+        calc.process_line("1 2 3").unwrap();
+        calc.pop().unwrap();
+        assert_eq!(calc.stack(), &[1.0, 2.0]);
+        calc.undo().unwrap();
+        assert_eq!(calc.stack(), &[1.0, 2.0, 3.0]);
     }
 
     #[test]
