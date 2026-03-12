@@ -53,4 +53,4 @@ cargo test
 
 ## License
 
-MIT
+GPL-3.0
