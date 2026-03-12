@@ -24,3 +24,6 @@ check:
     cargo clippy -- -D warnings
     cargo test
     cargo build
+
+# Run every step: fmt, clippy, test, build
+ci: fmt clippy test build
