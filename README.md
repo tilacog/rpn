@@ -2,11 +2,13 @@
 
 An RPN calculator in Rust with a REPL and pipe mode. The stack persists across lines.
 
-## Usage
+## Install
 
 ```bash
-cargo run
+cargo install --path .
 ```
+
+## Usage
 
 ### REPL mode
 
@@ -26,10 +28,10 @@ In a terminal, you get a prompt and the stack after each line:
 Piped input runs silently and prints the final stack:
 
 ```bash
-echo "3 4 +" | cargo run
+echo "3 4 +" | rpn
 # [7]
 
-printf "15 7 1 1 + - /\n3 * 2 1 1 + + -\n" | cargo run
+printf "15 7 1 1 + - /\n3 * 2 1 1 + + -\n" | rpn
 # [5]
 ```
 
