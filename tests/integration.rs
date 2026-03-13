@@ -117,7 +117,7 @@ fn undo_in_pipe_mode() {
     // 3 4 + undo → reverts the add, stack is [3, 4]
     let (stdout, _, success) = run_with_input("3 4 + undo\n");
     assert!(success);
-    assert_eq!(stdout.trim(), "[4 3]");
+    assert_eq!(stdout.trim(), "[3 4]");
 }
 
 #[test]
@@ -131,35 +131,35 @@ fn undo_with_no_history_prints_error() {
 fn rotate_left_in_pipe_mode() {
     let (stdout, _, success) = run_with_input("1 2 3 r\n");
     assert!(success);
-    assert_eq!(stdout.trim(), "[1 3 2]");
+    assert_eq!(stdout.trim(), "[2 3 1]");
 }
 
 #[test]
 fn rotate_right_in_pipe_mode() {
     let (stdout, _, success) = run_with_input("1 2 3 r-\n");
     assert!(success);
-    assert_eq!(stdout.trim(), "[2 1 3]");
+    assert_eq!(stdout.trim(), "[3 1 2]");
 }
 
 #[test]
 fn rotate_with_count() {
     let (stdout, _, success) = run_with_input("1 2 3 r2\n");
     assert!(success);
-    assert_eq!(stdout.trim(), "[2 1 3]");
+    assert_eq!(stdout.trim(), "[3 1 2]");
 }
 
 #[test]
 fn rotate_and_undo() {
     let (stdout, _, success) = run_with_input("1 2 3 r undo\n");
     assert!(success);
-    assert_eq!(stdout.trim(), "[3 2 1]");
+    assert_eq!(stdout.trim(), "[1 2 3]");
 }
 
 #[test]
 fn pop_in_pipe_mode() {
     let (stdout, _, success) = run_with_input("1 2 3 pop\n");
     assert!(success);
-    assert_eq!(stdout.trim(), "[2 1]");
+    assert_eq!(stdout.trim(), "[1 2]");
 }
 
 #[test]
@@ -173,7 +173,7 @@ fn pop_on_empty_stack_error() {
 fn rotate_both_directions_roundtrip() {
     let (stdout, _, success) = run_with_input("1 2 3\nr\nr\nr-\nr-\n");
     assert!(success);
-    assert_eq!(stdout.trim(), "[3 2 1]");
+    assert_eq!(stdout.trim(), "[1 2 3]");
 }
 
 // Mode command integration tests (task 5.4)
@@ -182,14 +182,14 @@ fn rotate_both_directions_roundtrip() {
 fn mode_switch_to_vertical() {
     let (stdout, _, success) = run_with_input("1 2 3\nmode vertical\n");
     assert!(success);
-    assert_eq!(stdout.trim(), "3. 3\n2. 2\n1. 1");
+    assert_eq!(stdout.trim(), "3: 1\n2: 2\n1: 3");
 }
 
 #[test]
 fn mode_switch_to_horizontal() {
     let (stdout, _, success) = run_with_input("1 2 3\nmode vertical\nmode horizontal\n");
     assert!(success);
-    assert_eq!(stdout.trim(), "[3 2 1]");
+    assert_eq!(stdout.trim(), "[1 2 3]");
 }
 
 #[test]
@@ -220,7 +220,7 @@ fn mode_invalid_argument() {
 fn mode_does_not_affect_stack() {
     let (stdout, _, success) = run_with_input("1 2\nmode vertical\nmode horizontal\n");
     assert!(success);
-    assert_eq!(stdout.trim(), "[2 1]");
+    assert_eq!(stdout.trim(), "[1 2]");
 }
 
 #[test]
@@ -229,7 +229,7 @@ fn mode_does_not_affect_undo() {
     let (stdout, _, success) = run_with_input("1 2\n3\nmode vertical\nundo\n");
     assert!(success);
     // After undo, stack is [1, 2], vertical mode is still active
-    assert_eq!(stdout.trim(), "2. 2\n1. 1");
+    assert_eq!(stdout.trim(), "2: 1\n1: 2");
 }
 
 // Help flag tests
@@ -252,10 +252,10 @@ fn help_short_flag() {
 fn help_output_contains_expected_content() {
     let (stdout, _, _) = run_with_args(&["--help"]);
     assert!(stdout.contains("RPN"));
-    assert!(stdout.contains("+"));
-    assert!(stdout.contains("-"));
-    assert!(stdout.contains("*"));
-    assert!(stdout.contains("/"));
+    assert!(stdout.contains('+'));
+    assert!(stdout.contains('-'));
+    assert!(stdout.contains('*'));
+    assert!(stdout.contains('/'));
     assert!(stdout.contains("clear"));
     assert!(stdout.contains("pop"));
     assert!(stdout.contains("quit"));
@@ -304,4 +304,30 @@ fn sqrt_negative_error() {
     let (_, stderr, success) = run_with_input("-1 sqrt\n");
     assert!(success);
     assert!(stderr.contains("negative"));
+}
+
+// Help command integration tests
+
+#[test]
+fn help_command_prints_help_text() {
+    let (stdout, _, success) = run_with_input("help\n");
+    assert!(success);
+    assert!(stdout.contains("Usage: pol"));
+    assert!(stdout.contains("RPN"));
+}
+
+#[test]
+fn help_command_does_not_affect_stack() {
+    let (stdout, _, success) = run_with_input("5 3 help +\n");
+    assert!(success);
+    // Stack should still have [5, 3] and then + applies to get [8]
+    assert!(stdout.contains("[8]"));
+}
+
+#[test]
+fn help_command_in_batch_mode() {
+    let (stdout, _, success) = run_with_input("help\n1 2 +\n");
+    assert!(success);
+    assert!(stdout.contains("Usage: pol"));
+    assert!(stdout.contains("[3]"));
 }

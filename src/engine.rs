@@ -1,12 +1,52 @@
 use crate::error::CalcError;
 use crate::parser::{self, Cmd, Op, Token};
 
+#[must_use]
+pub fn get_help_text() -> String {
+    "\
+Usage: pol [OPTIONS]
+
+An interactive RPN (Reverse Polish Notation) calculator.
+
+Reads expressions in postfix notation. Runs as an interactive REPL when
+started in a terminal, or processes piped input in batch mode.
+
+Operators:
+    +    Addition
+    -    Subtraction
+    *    Multiplication
+    /    Division
+    ^    Exponentiation (a ^ b = a raised to the power b)
+    %    Modulo (remainder after division)
+
+Commands:
+    clear       Clear the stack
+    help        Show this help text
+    pop         Remove the top element
+    quit        Exit the calculator
+    undo        Undo the last operation
+    r, r<N>     Rotate stack left by N (default 1)
+    r-, r-<N>   Rotate stack right by N (default 1)
+    sqrt        Square root of the top element
+
+Display modes:
+    mode                Show current display mode
+    mode horizontal     Stack on one line (default): [1 2 3]
+    mode vertical       Stack with indices:
+                            3. 3
+                            2. 2
+                            1. 1
+"
+    .to_string()
+}
+
 pub struct Calculator {
     stack: Vec<f64>,
     history: Vec<Vec<f64>>,
 }
 
 impl Calculator {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             stack: Vec::new(),
@@ -23,10 +63,16 @@ impl Calculator {
         self.stack.push(value);
     }
 
+    #[must_use]
     pub fn stack(&self) -> &[f64] {
         &self.stack
     }
 
+    /// Removes the top element from the stack.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CalcError::StackUnderflow`] if the stack is empty.
     pub fn pop(&mut self) -> Result<(), CalcError> {
         if self.stack.is_empty() {
             return Err(CalcError::StackUnderflow {
@@ -50,7 +96,8 @@ impl Calculator {
         if len <= 1 {
             return;
         }
-        let n = n.rem_euclid(len as i32) as usize;
+        let len_i32 = i32::try_from(len).unwrap_or(i32::MAX);
+        let n = usize::try_from(n.rem_euclid(len_i32)).unwrap_or(0);
         if n == 0 {
             return;
         }
@@ -58,6 +105,11 @@ impl Calculator {
         self.stack.rotate_left(n);
     }
 
+    /// Reverts the last operation by restoring the previous stack state.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CalcError::NothingToUndo`] if there is no history to revert.
     pub fn undo(&mut self) -> Result<(), CalcError> {
         match self.history.pop() {
             Some(previous) => {
@@ -68,15 +120,20 @@ impl Calculator {
         }
     }
 
+    /// Replaces the top element with its square root.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CalcError::StackUnderflow`] if the stack is empty, or
+    /// [`CalcError::NegativeSqrt`] if the top value is negative.
     pub fn sqrt(&mut self) -> Result<(), CalcError> {
-        if self.stack.is_empty() {
+        let Some(&a) = self.stack.last() else {
             return Err(CalcError::StackUnderflow {
                 operator: "sqrt".to_string(),
                 required: 1,
                 available: 0,
             });
-        }
-        let a = *self.stack.last().unwrap();
+        };
         if a < 0.0 {
             return Err(CalcError::NegativeSqrt);
         }
@@ -86,6 +143,13 @@ impl Calculator {
         Ok(())
     }
 
+    /// Applies a binary operator to the top two stack elements.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CalcError::StackUnderflow`] if fewer than two elements are on
+    /// the stack, or [`CalcError::DivisionByZero`] for `/` or `%` when the
+    /// divisor is zero.
     pub fn apply_operator(&mut self, op: &Op) -> Result<(), CalcError> {
         let op_str = match op {
             Op::Add => "+",
@@ -131,22 +195,30 @@ impl Calculator {
 
     /// Process a single token. Returns `Ok(true)` if quit was requested.
     /// Mode tokens are ignored by the engine (handled by the caller).
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`CalcError`] if the token triggers a stack or arithmetic error.
     pub fn process_token(&mut self, token: Token) -> Result<bool, CalcError> {
         match token {
             Token::Number(n) => self.push(n),
             Token::Operator(op) => self.apply_operator(&op)?,
             Token::Command(Cmd::Clear) => self.clear(),
+            Token::Command(Cmd::Help) | Token::Mode(_) => {} // handled by main
             Token::Command(Cmd::Pop) => self.pop()?,
             Token::Command(Cmd::Quit) => return Ok(true),
             Token::Command(Cmd::Undo) => self.undo()?,
             Token::Command(Cmd::Rotate(n)) => self.rotate(n),
             Token::Command(Cmd::Sqrt) => self.sqrt()?,
-            Token::Mode(_) => {}
         }
         Ok(false)
     }
 
     /// Process a line of input. Returns `Ok(true)` if quit was requested.
+    ///
+    /// # Errors
+    ///
+    /// Returns the first [`CalcError`] encountered while processing tokens.
     pub fn process_line(&mut self, line: &str) -> Result<bool, CalcError> {
         let tokens = parser::parse_line(line);
         for token_result in tokens {
@@ -697,5 +769,23 @@ mod tests {
         assert_eq!(calc.stack(), &[4.0]);
         calc.undo().unwrap();
         assert_eq!(calc.stack(), &[16.0]);
+    }
+
+    #[test]
+    fn help_does_not_modify_stack() {
+        let mut calc = Calculator::new();
+        calc.push(1.0);
+        calc.push(2.0);
+        let quit = calc.process_token(Token::Command(Cmd::Help)).unwrap();
+        assert!(!quit);
+        assert_eq!(calc.stack(), &[1.0, 2.0]);
+    }
+
+    #[test]
+    fn help_on_empty_stack() {
+        let mut calc = Calculator::new();
+        let quit = calc.process_token(Token::Command(Cmd::Help)).unwrap();
+        assert!(!quit);
+        assert!(calc.stack().is_empty());
     }
 }

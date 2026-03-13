@@ -1,8 +1,10 @@
+#![warn(clippy::pedantic)]
+
 use std::io::{self, BufRead, IsTerminal};
 
-use pol::engine::Calculator;
+use pol::engine::{Calculator, get_help_text};
 use pol::error::CalcError;
-use pol::parser::{self, Token};
+use pol::parser::{self, Cmd, Token};
 use rustyline::DefaultEditor;
 use rustyline::config::Configurer;
 use rustyline::error::ReadlineError;
@@ -15,23 +17,22 @@ enum DisplayMode {
 
 fn format_value(v: f64) -> String {
     if v.fract() == 0.0 && v.is_finite() {
-        format!("{}", v as i64)
+        format!("{v:.0}")
     } else {
         format!("{v}")
     }
 }
 
 fn format_stack_horizontal(stack: &[f64]) -> String {
-    let values: Vec<String> = stack.iter().rev().map(|&v| format_value(v)).collect();
+    let values: Vec<String> = stack.iter().map(|&v| format_value(v)).collect();
     format!("[{}]", values.join(" "))
 }
 
 fn format_stack_vertical(stack: &[f64]) -> String {
     stack
         .iter()
-        .rev()
         .enumerate()
-        .map(|(i, &v)| format!("{}. {}", stack.len() - i, format_value(v)))
+        .map(|(i, &v)| format!("{}: {}", stack.len() - i, format_value(v)))
         .collect::<Vec<_>>()
         .join("\n")
 }
@@ -43,8 +44,8 @@ fn format_stack(stack: &[f64], mode: DisplayMode) -> String {
     }
 }
 
-fn handle_mode(arg: Option<String>, display_mode: &mut DisplayMode) {
-    match arg.as_deref() {
+fn handle_mode(arg: Option<&str>, display_mode: &mut DisplayMode) {
+    match arg {
         None => {
             let name = match display_mode {
                 DisplayMode::Horizontal => "horizontal",
@@ -68,10 +69,12 @@ fn process_line(
     display_mode: &mut DisplayMode,
 ) -> Result<bool, CalcError> {
     let tokens = parser::parse_line(line);
+    let mut print_help_after = false;
     for token_result in tokens {
         let token = token_result?;
         match token {
-            Token::Mode(arg) => handle_mode(arg, display_mode),
+            Token::Mode(arg) => handle_mode(arg.as_deref(), display_mode),
+            Token::Command(Cmd::Help) => print_help_after = true,
             token => {
                 if calc.process_token(token)? {
                     return Ok(true);
@@ -79,45 +82,14 @@ fn process_line(
             }
         }
     }
+    if print_help_after {
+        print_help();
+    }
     Ok(false)
 }
 
 fn print_help() {
-    print!(
-        "\
-Usage: pol [OPTIONS]
-
-An interactive RPN (Reverse Polish Notation) calculator.
-
-Reads expressions in postfix notation. Runs as an interactive REPL when
-started in a terminal, or processes piped input in batch mode.
-
-Operators:
-    +    Addition
-    -    Subtraction
-    *    Multiplication
-    /    Division
-    ^    Exponentiation (a ^ b = a raised to the power b)
-    %    Modulo (remainder after division)
-
-Commands:
-    clear       Clear the stack
-    pop         Remove the top element
-    quit        Exit the calculator
-    undo        Undo the last operation
-    r, r<N>     Rotate stack left by N (default 1)
-    r-, r-<N>   Rotate stack right by N (default 1)
-    sqrt        Square root of the top element
-
-Display modes:
-    mode                Show current display mode
-    mode horizontal     Stack on one line (default): [3 2 1]
-    mode vertical       Stack with indices:
-                            3. 3
-                            2. 2
-                            1. 1
-"
-    );
+    print!("{}", get_help_text());
 }
 
 fn main() {
@@ -150,7 +122,7 @@ fn main() {
                         Err(e) => eprintln!("{e}"),
                     }
                 }
-                Err(ReadlineError::Interrupted) => continue,
+                Err(ReadlineError::Interrupted) => {}
                 Err(ReadlineError::Eof) => break,
                 Err(e) => {
                     eprintln!("Error: {e}");
@@ -189,7 +161,7 @@ mod tests {
 
     #[test]
     fn horizontal_multi_element() {
-        assert_eq!(format_stack_horizontal(&[1.0, 2.0, 3.0]), "[3 2 1]");
+        assert_eq!(format_stack_horizontal(&[1.0, 2.0, 3.0]), "[1 2 3]");
     }
 
     #[test]
@@ -204,19 +176,19 @@ mod tests {
 
     #[test]
     fn horizontal_float() {
-        assert_eq!(format_stack_horizontal(&[3.14, 2.0]), "[2 3.14]");
+        assert_eq!(format_stack_horizontal(&[1.5, 2.0]), "[1.5 2]");
     }
 
     // format_stack_vertical tests (task 5.2)
 
     #[test]
     fn vertical_multi_element() {
-        assert_eq!(format_stack_vertical(&[1.0, 2.0, 3.0]), "3. 3\n2. 2\n1. 1");
+        assert_eq!(format_stack_vertical(&[1.0, 2.0, 3.0]), "3: 1\n2: 2\n1: 3");
     }
 
     #[test]
     fn vertical_single() {
-        assert_eq!(format_stack_vertical(&[42.0]), "1. 42");
+        assert_eq!(format_stack_vertical(&[42.0]), "1: 42");
     }
 
     #[test]
@@ -226,6 +198,6 @@ mod tests {
 
     #[test]
     fn vertical_float() {
-        assert_eq!(format_stack_vertical(&[3.14, 2.0]), "2. 2\n1. 3.14");
+        assert_eq!(format_stack_vertical(&[1.5, 2.0]), "2: 1.5\n1: 2");
     }
 }

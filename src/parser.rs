@@ -13,6 +13,7 @@ pub enum Op {
 #[derive(Debug, PartialEq)]
 pub enum Cmd {
     Clear,
+    Help,
     Pop,
     Quit,
     Undo,
@@ -41,10 +42,11 @@ pub fn parse_line(input: &str) -> Vec<Result<Token, CalcError>> {
             "%" => Ok(Token::Operator(Op::Mod)),
             "sqrt" => Ok(Token::Command(Cmd::Sqrt)),
             "clear" => Ok(Token::Command(Cmd::Clear)),
+            "help" => Ok(Token::Command(Cmd::Help)),
             "pop" => Ok(Token::Command(Cmd::Pop)),
             "quit" => Ok(Token::Command(Cmd::Quit)),
             "undo" => Ok(Token::Command(Cmd::Undo)),
-            "mode" => Ok(Token::Mode(words.next().map(|s| s.to_string()))),
+            "mode" => Ok(Token::Mode(words.next().map(ToString::to_string))),
             other if other.starts_with('r') => {
                 let rest = &other[1..];
                 let n = match rest {
@@ -82,7 +84,7 @@ mod tests {
 
     #[test]
     fn parse_float() {
-        assert_eq!(parse_ok("3.14"), vec![Token::Number(3.14)]);
+        assert_eq!(parse_ok("1.5"), vec![Token::Number(1.5)]);
     }
 
     #[test]
@@ -266,5 +268,23 @@ mod tests {
     #[test]
     fn parse_sqrt() {
         assert_eq!(parse_ok("sqrt"), vec![Token::Command(Cmd::Sqrt)]);
+    }
+
+    #[test]
+    fn parse_help() {
+        assert_eq!(parse_ok("help"), vec![Token::Command(Cmd::Help)]);
+    }
+
+    #[test]
+    fn parse_help_in_expression() {
+        assert_eq!(
+            parse_ok("5 help 3 +"),
+            vec![
+                Token::Number(5.0),
+                Token::Command(Cmd::Help),
+                Token::Number(3.0),
+                Token::Operator(Op::Add),
+            ]
+        );
     }
 }
