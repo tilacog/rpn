@@ -50,7 +50,7 @@ printf "15 7 1 1 + - /\n3 * 2 1 1 + + -\n" | pol
 | `r`, `r2`, `r-`, `r-2` | Rotate the stack left/right by N positions (default 1) |
 | `mode` | Show current display mode |
 | `mode horizontal` | Switch to horizontal display (default, top-first: `[3 2 1]`) |
-| `mode vertical` | Switch to vertical display with indices (`0. 3`, `1. 2`, `2. 1`) |
+| `mode vertical` | Switch to vertical display with indices (`1. 3`, `2. 2`, `3. 1`) |
 | `quit` | Exit the calculator |
 
 ## Build and test

@@ -182,7 +182,7 @@ fn rotate_both_directions_roundtrip() {
 fn mode_switch_to_vertical() {
     let (stdout, _, success) = run_with_input("1 2 3\nmode vertical\n");
     assert!(success);
-    assert_eq!(stdout.trim(), "0. 3\n1. 2\n2. 1");
+    assert_eq!(stdout.trim(), "1. 3\n2. 2\n3. 1");
 }
 
 #[test]
@@ -229,7 +229,7 @@ fn mode_does_not_affect_undo() {
     let (stdout, _, success) = run_with_input("1 2\n3\nmode vertical\nundo\n");
     assert!(success);
     // After undo, stack is [1, 2], vertical mode is still active
-    assert_eq!(stdout.trim(), "0. 2\n1. 1");
+    assert_eq!(stdout.trim(), "1. 2\n2. 1");
 }
 
 // Help flag tests

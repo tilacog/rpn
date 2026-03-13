@@ -31,7 +31,7 @@ fn format_stack_vertical(stack: &[f64]) -> String {
         .iter()
         .rev()
         .enumerate()
-        .map(|(i, &v)| format!("{}. {}", i, format_value(v)))
+        .map(|(i, &v)| format!("{}. {}", i + 1, format_value(v)))
         .collect::<Vec<_>>()
         .join("\n")
 }
@@ -113,9 +113,9 @@ Display modes:
     mode                Show current display mode
     mode horizontal     Stack on one line (default): [3 2 1]
     mode vertical       Stack with indices:
-                            0. 3
-                            1. 2
-                            2. 1
+                            1. 3
+                            2. 2
+                            3. 1
 "
     );
 }
@@ -211,12 +211,12 @@ mod tests {
 
     #[test]
     fn vertical_multi_element() {
-        assert_eq!(format_stack_vertical(&[1.0, 2.0, 3.0]), "0. 3\n1. 2\n2. 1");
+        assert_eq!(format_stack_vertical(&[1.0, 2.0, 3.0]), "1. 3\n2. 2\n3. 1");
     }
 
     #[test]
     fn vertical_single() {
-        assert_eq!(format_stack_vertical(&[42.0]), "0. 42");
+        assert_eq!(format_stack_vertical(&[42.0]), "1. 42");
     }
 
     #[test]
@@ -226,6 +226,6 @@ mod tests {
 
     #[test]
     fn vertical_float() {
-        assert_eq!(format_stack_vertical(&[3.14, 2.0]), "0. 2\n1. 3.14");
+        assert_eq!(format_stack_vertical(&[3.14, 2.0]), "1. 2\n2. 3.14");
     }
 }
