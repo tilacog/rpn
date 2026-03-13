@@ -2,6 +2,7 @@
 
 use std::io::{self, BufRead, IsTerminal};
 
+use clap::{Parser, ValueEnum};
 use pol::engine::{Calculator, get_help_text};
 use pol::error::CalcError;
 use pol::parser::{self, Cmd, Token};
@@ -9,10 +10,18 @@ use rustyline::DefaultEditor;
 use rustyline::config::Configurer;
 use rustyline::error::ReadlineError;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, ValueEnum)]
 enum DisplayMode {
     Horizontal,
     Vertical,
+}
+
+#[derive(Parser)]
+#[command(about, version)]
+struct Args {
+    /// Stack display mode
+    #[arg(long, value_enum, default_value_t = DisplayMode::Vertical)]
+    mode: DisplayMode,
 }
 
 fn format_value(v: f64) -> String {
@@ -93,15 +102,12 @@ fn print_help() {
 }
 
 fn main() {
-    if std::env::args().any(|arg| arg == "--help" || arg == "-h") {
-        print_help();
-        return;
-    }
+    let args = Args::parse();
 
     let stdin = io::stdin();
     let is_tty = stdin.is_terminal();
     let mut calc = Calculator::new();
-    let mut display_mode = DisplayMode::Horizontal;
+    let mut display_mode = args.mode;
 
     if is_tty {
         // REPL mode

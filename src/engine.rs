@@ -4,12 +4,10 @@ use crate::parser::{self, Cmd, Op, Token};
 #[must_use]
 pub fn get_help_text() -> String {
     "\
-Usage: pol [OPTIONS]
+pol — interactive RPN calculator
 
-An interactive RPN (Reverse Polish Notation) calculator.
-
-Reads expressions in postfix notation. Runs as an interactive REPL when
-started in a terminal, or processes piped input in batch mode.
+Enter numbers and operators in postfix notation. Numbers are pushed onto
+the stack; operators consume values from the top.
 
 Operators:
     +    Addition
@@ -31,7 +29,7 @@ Commands:
 
 Display modes:
     mode                Show current display mode
-    mode horizontal     Stack on one line (default): [1 2 3]
+    mode horizontal     Stack on one line: [1 2 3]
     mode vertical       Stack with indices:
                             3. 3
                             2. 2
